@@ -16,15 +16,21 @@ jobs:
 
   build-deploy:
 
+ 
+
     runs-on: self-hosted
 
  
 
     steps:
 
+ 
+
       - name: Checkout Code
 
         uses: actions/checkout@v4
+
+ 
 
  
 
@@ -40,16 +46,80 @@ jobs:
 
  
 
+ 
+
       - name: Build Docker Image
 
         run: docker build -t venkata465/bmi-image:${{ github.run_number }} -t venkata465/bmi-image:latest .
 
  
 
-      - name: Push Docker Image
+ 
 
-        run: |
+      - name: Push Versioned Image
 
-          docker push venkata465/bmi-image:${{ github.run_number }}
+        run: docker push venkata465/bmi-image:${{ github.run_number }}
 
-          docker push venkata465/bmi-image:latest
+ 
+
+ 
+
+      - name: Push Latest Image
+
+        run: docker push venkata465/bmi-image:latest
+
+ 
+
+ 
+
+      - name: Apply Kubernetes Deployment
+
+        run: kubectl apply -f k8s/deployment.yaml
+
+ 
+
+ 
+
+      - name: Apply Kubernetes Service
+
+        run: kubectl apply -f k8s/service.yaml
+
+ 
+
+ 
+
+      - name: Update Kubernetes Image
+
+        run: kubectl set image deployment/bmi-deployment bmi-container=venkata465/bmi-image:${{ github.run_number }}
+
+ 
+
+ 
+
+      - name: Wait for Rollout
+
+        run: kubectl rollout status deployment/bmi-deployment --timeout=120s
+
+ 
+
+ 
+
+      - name: Show Deployment
+
+        run: kubectl get deployment bmi-deployment
+
+ 
+
+ 
+
+      - name: Show Pods
+
+        run: kubectl get pods -l app=bmi -o wide
+
+ 
+
+ 
+
+      - name: Show Service
+
+        run: kubectl get service bmi-service
