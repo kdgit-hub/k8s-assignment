@@ -1,42 +1,46 @@
 name: Build and Deploy BMI App
+
 on:
   push:
     branches:
       - main
+
 jobs:
   build-deploy:
     runs-on: self-hosted
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Login to Docker Hub
         uses: docker/login-action@v4
-
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker Image
-        run: docker build -t venkata465/bmi-image:${{ github.run_number }} -t venkata465/bmi-image:latest .
+        run: |
+          docker build \
+            -t venkata465/bmi-image:${{ github.run_number }} \
+            -t venkata465/bmi-image:latest .
 
       - name: Push Versioned Image
         run: docker push venkata465/bmi-image:${{ github.run_number }}
 
-       - name: Push Latest Image
+      - name: Push Latest Image
         run: docker push venkata465/bmi-image:latest
 
-       - name: Apply Kubernetes Deployment
-         run: kubectl apply -f k8s/deployment.yaml
+      - name: Apply Kubernetes Deployment
+        run: kubectl apply -f k8s/deployment.yaml
 
       - name: Apply Kubernetes Service
         run: kubectl apply -f k8s/service.yaml
 
       - name: Update Kubernetes Image
-
         run: kubectl set image deployment/bmi-deployment bmi-container=venkata465/bmi-image:${{ github.run_number }}
 
-       - name: Wait for Rollout
+      - name: Wait for Rollout
         run: kubectl rollout status deployment/bmi-deployment --timeout=120s
 
       - name: Show Deployment
